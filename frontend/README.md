@@ -1,6 +1,13 @@
 # GradVision Frontend
 
-Frontend for the GradVision web application, built with Next.js.
+Frontend for the GradVision web application.
+
+Built with:
+
+- Next.js
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
 
 ## Getting Started
 
