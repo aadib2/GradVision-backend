@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/search", tags=["Search"])
 def search_universities_endpoint(
     location: str | None = None,
     search: str | None = None,
-    program_fields: list[str] | None = None,
+    program_fields: list[str] | None = Query(None),
     limit: int = 50,
     offset: int = 0,
     db: Session = Depends(get_db),

@@ -17,3 +17,12 @@ dependencies = [
 
 [tool.fastapi]
 entrypoint = "app.main:app"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

@@ -1,9 +1,7 @@
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
-from app.crud.user import get_user_by_id as get_user
-from app.models.models import Professor, Program, University
-from app.schemas.universities import ProfessorRead, UniversitySummary
-from app.schemas.programs import ProgramSummary
+from app.models.models import DegreeType, Professor, Program, University
+from app.schemas.universities import UniversitySummary
 
 
 def list_universities(
@@ -63,25 +61,39 @@ def list_universities(
     return [UniversitySummary(**row) for row in rows]
 
 
-# def search_universities(db:Session, user_id: int, location: str = None, degree_type: str = None):
-#     user = get_user(db, user_id)
-#     if not user:
-#         return []
+def search_universities(
+    db: Session,
+    location: str | None = None,
+    search: str | None = None,
+    program_fields: list[str] | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list[UniversitySummary]:
+    """Search universities for GET /api/search/universities (same filters as the list)."""
+    return list_universities(db, location, search, program_fields, limit, offset)
 
-#     programs = db.query(Program).filter(Program.degree_type == degree_type, Program.field == user.program_interests).all()
-#     universities = db.query(University).filter(University.location == location, University.programs == programs).all()
-#     return universities
 
-# def get_professors(db:Session, university_id: int, user_id: int):
-#     user = get_user(db, user_id)
-#     if not user:
-#         return []
-#     return db.query(ProfessorRead).filter(ProfessorRead.university_id == university_id, ProfessorRead.research_interests == user.research_interests).all()
+def get_professors(db: Session, university_id: int) -> list[Professor]:
+    """All professors at one university, ordered by name."""
+    return list(
+        db.execute(
+            select(Professor)
+            .where(Professor.university_id == university_id)
+            .order_by(Professor.name, Professor.professor_id)
+        ).scalars()
+    )
 
-# def get_programs_from_university(db:Session, university_id: int, field: str = None, degree_type: str = None):
-#     query = db.query(ProgramSummary).filter(ProgramSummary.university_id == university_id)
-#     if field:
-#         query = query.filter(ProgramSummary.field == field)
-#     if degree_type:
-#         query = query.filter(ProgramSummary.degree_type == degree_type)
-#     return query.all()
+
+def get_programs_from_university(
+    db: Session,
+    university_id: int,
+    field: str | None = None,
+    degree_type: DegreeType | None = None,
+) -> list[Program]:
+    """Programs at one university, optionally filtered by field and degree type."""
+    stmt = select(Program).where(Program.university_id == university_id)
+    if field:
+        stmt = stmt.where(Program.field == field)
+    if degree_type:
+        stmt = stmt.where(Program.degree_type == degree_type)
+    return list(db.execute(stmt.order_by(Program.program_name, Program.program_id)).scalars())
