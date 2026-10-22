@@ -37,3 +37,10 @@ uv run uvicorn app.main:app --reload --app-dir src
 Placeholder until features are built out
 
 
+## Running Tests
+
+Run all tests from the repo root:
+
+```
+JWT_SECRET_KEY="test-secret-key" PYTHONPATH=src uv run pytest -v
+```
