@@ -11,6 +11,12 @@ from app.models.models import DegreeType
 class ProgramIdRequest(BaseModel):
     program_id: int
 
+class SavedProgram(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    program_id: int
+    user_id: int
+    saved_at: date
 
 class CalendarEvent(BaseModel):
     model_config = ConfigDict(from_attributes=True)

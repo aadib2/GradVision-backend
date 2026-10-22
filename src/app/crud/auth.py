@@ -2,12 +2,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 from datetime import datetime, timezone
 
-from models import User, RefreshToken
-from core.security import verify_password
-from app.core.security import (
-    hash_refresh_token,
-    verify_password,
-)
+from app.models.models import User, RefreshToken
+from app.core.security import verify_password
+from app.core.security import (hash_refresh_token, verify_password)
 
 def auth_login(db: Session, email: str, password: str) -> User | None:
     user = db.execute(
@@ -30,27 +27,6 @@ def auth_refresh(db:Session, user_id: int):
     statement = select(User).where(User.user_id == user_id)
 
     return db.execute(statement).scalar_one_or_none()
-
-def auth_login(
-    db: Session,
-    email: str,
-    password: str,
-) -> User | None:
-    user = db.execute(
-        select(User).where(User.email == email)
-    ).scalar_one_or_none()
-
-    if user is None:
-        return None
-
-    if not verify_password(
-        password,
-        user.hashed_password,
-    ):
-        return None
-
-    return user
-
 
 def save_refresh_token(
     db: Session,

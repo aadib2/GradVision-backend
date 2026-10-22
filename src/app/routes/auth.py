@@ -1,11 +1,9 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from jwt.exceptions import InvalidTokenError
 
-from app.api.deps import get_current_user
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -14,47 +12,17 @@ from app.core.security import (
 from app.core.database import get_db
 from app.crud import auth as auth_crud
 from app.crud.user import get_user_by_id
-from app.models import User as UserModel
 from app.schemas.auth import LoginRequest, RefreshRequest
 from app.schemas.common import SuccessResponse
 from app.schemas.token import Token
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-@router.post("/login", response_model=Token)
-def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db),
-) -> Token:
-    user = auth_crud.auth_login(
-        db=db,
-        email=form_data.email,
-        password=form_data.password,
-    )
-
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    access_token = create_access_token(
-        user_id=user.user_id,
-    )
-
-    return Token(
-        access_token=access_token,
-        token_type="bearer",
-    )
-
-
 def _refresh_token_error() -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid or expired refresh token",
     )
-
 
 def _get_valid_refresh_token(
     db: Session,

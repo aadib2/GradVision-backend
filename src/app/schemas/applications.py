@@ -56,3 +56,11 @@ class Task(BaseModel):
     title: str
     due_date: Optional[datetime] = None
     completed: bool = False
+
+class ApplicationCreateResponse(BaseModel):
+    success: bool = True
+    application: Application
+
+class TaskCreateResponse(BaseModel):
+    success: bool = True
+    task: Task

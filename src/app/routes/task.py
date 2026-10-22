@@ -1,63 +1,123 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+
+from app.api.deps import get_current_user
 from app.core.database import get_db
-from app.models import Task as TaskModel
+from app.crud import applications as task_crud
+from app.models.models import User as UserModel
+from app.schemas.applications import (
+    Task as TaskSchema,
+    TaskCreate,
+    TaskUpdate,
+    TaskCreateResponse,
+)
+from app.schemas.common import SuccessResponse
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
-@router.get("/user/{id}", response_model=list[TaskModel])
+def ensure_self(
+    current_user: UserModel,
+    user_id: int,
+) -> None:
+    if current_user.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to access these tasks",
+        )
+
+
+@router.get(
+    "/users/{user_id}/tasks/",
+    response_model=list[TaskSchema],
+)
 def get_user_tasks(
-    id: int,
+    user_id: int,
     db: Session = Depends(get_db),
-) -> list[TaskModel]:
-    tasks = db.query(TaskModel).filter(TaskModel.user_id == id).all()
-    if not tasks:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No tasks found for this user",
-        )
-    return tasks
+    current_user: UserModel = Depends(get_current_user),
+):
+    ensure_self(current_user, user_id)
 
-@router.post("", response_model=TaskModel, status_code=status.HTTP_201_CREATED)
+    return task_crud.get_user_tasks(
+        db=db,
+        user_id=user_id,
+    )
+
+
+@router.post(
+    "/users/{user_id}/tasks/",
+    response_model=TaskCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_task(
-    task_in: TaskModel,
+    user_id: int,
+    task_in: TaskCreate,
     db: Session = Depends(get_db),
-) -> TaskModel:
-    task = TaskModel(**task_in.dict())
-    db.add(task)
-    db.commit()
-    db.refresh(task)
-    return task
+    current_user: UserModel = Depends(get_current_user),
+):
+    ensure_self(current_user, user_id)
 
-@router.patch("/{id}", response_model=TaskModel)
-def update_task( 
-    id: int,
-    task_in: TaskModel,
+    task = task_crud.create_task(
+        db=db,
+        user_id=user_id,
+        task_in=task_in,
+    )
+
+    if task is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Application not found",
+        )
+
+    return TaskCreateResponse(
+        task=TaskSchema.model_validate(task)
+    )
+
+
+@router.patch(
+    "/tasks/{task_id}",
+    response_model=SuccessResponse,
+)
+def update_task(
+    task_id: int,
+    task_in: TaskUpdate,
     db: Session = Depends(get_db),
-) -> TaskModel:
-    task = db.query(TaskModel).filter(TaskModel.task_id == id).first()
-    if not task:
+    current_user: UserModel = Depends(get_current_user),
+):
+    task = task_crud.update_task(
+        db=db,
+        task_id=task_id,
+        user_id=current_user.user_id,
+        task_in=task_in,
+    )
+
+    if task is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Task not found",
         )
-    for key, value in task_in.dict(exclude_unset=True).items():
-        setattr(task, key, value)
-    db.commit()
-    db.refresh(task)
-    return task
 
-@router.delete("/{id}", response_model=dict)
+    return SuccessResponse()
+
+
+@router.delete(
+    "/tasks/{task_id}",
+    response_model=SuccessResponse,
+)
 def delete_task(
-    id: int,
+    task_id: int,
     db: Session = Depends(get_db),
-) -> dict:
-    task = db.query(TaskModel).filter(TaskModel.task_id == id).first()
-    if not task:
+    current_user: UserModel = Depends(get_current_user),
+):
+    deleted = task_crud.delete_task(
+        db=db,
+        task_id=task_id,
+        user_id=current_user.user_id,
+    )
+
+    if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Task not found",
         )
-    db.delete(task)
-    db.commit()
-    return {"detail": "Task deleted successfully"}
+
+    return SuccessResponse()
