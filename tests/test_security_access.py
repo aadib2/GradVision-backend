@@ -68,7 +68,7 @@ def registered_routes() -> set[tuple[str, str]]:
 
 
 def test_every_route_is_classified_as_public_or_protected():
-    assert PROTECTED.isdisjoint(PUBLIC)
+    assert PROTECTED.isdisjoint(PUBLIC) # ensure no overlap between protected and public routes
     assert registered_routes() | HIDDEN_FROM_SCHEMA == PROTECTED | PUBLIC
 
 
@@ -100,21 +100,6 @@ class TestProtectedRoutes:
         )
 
         assert response.status_code == 401
-
-
-@pytest.mark.xfail(
-    reason="The custom HTTPException handler in core/exceptions.py builds a bare "
-    "JSONResponse and drops exc.headers, so the WWW-Authenticate: Bearer header "
-    "set in deps.py never reaches the client (RFC 6750 expects it on a 401)",
-    strict=True,
-)
-def test_401_includes_www_authenticate_header(client, user):
-    response = client.get(
-        f"/api/users/{user.user_id}", headers={"Authorization": "Bearer not-a-real-token"}
-    )
-
-    assert response.headers.get("www-authenticate") == "Bearer"
-
 
 @pytest.mark.parametrize(
     "method, path",

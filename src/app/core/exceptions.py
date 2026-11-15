@@ -15,7 +15,7 @@ async def http_exception_handler(_request: Request, exc: HTTPException) -> JSONR
         message = detail
     else:
         message = str(detail)
-    return JSONResponse(status_code=exc.status_code, content=_error_body(message))
+    return JSONResponse(status_code=exc.status_code, content=_error_body(message), headers=exc.headers)
 
 
 async def validation_exception_handler(
