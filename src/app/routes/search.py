@@ -10,8 +10,10 @@ from app.schemas.universities import (
     ProfessorRead,
     UniversitySummary,
 )
-
-
+from app.crud.universities import (
+    get_professors,
+    search_universities,
+)
 router = APIRouter(prefix="/search", tags=["Search"])
 
 

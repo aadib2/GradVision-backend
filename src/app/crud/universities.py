@@ -5,7 +5,6 @@ from app.models.models import Professor, Program, University
 from app.schemas.universities import ProfessorRead, UniversitySummary
 from app.schemas.programs import ProgramSummary
 
-
 def list_universities(
     db: Session,
     location: str | None = None,
@@ -62,21 +61,35 @@ def list_universities(
     rows = db.execute(stmt).mappings().all()
     return [UniversitySummary(**row) for row in rows]
 
+def search_universities(
+    db: Session,
+    location: str | None = None,
+    search: str | None = None,
+    program_fields: list[str] | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list[UniversitySummary]:
+    return list_universities(
+        db=db,
+        location=location,
+        search=search,
+        program_fields=program_fields,
+        limit=limit,
+        offset=offset,
+    )
 
-# def search_universities(db:Session, user_id: int, location: str = None, degree_type: str = None):
-#     user = get_user(db, user_id)
-#     if not user:
-#         return []
 
-#     programs = db.query(Program).filter(Program.degree_type == degree_type, Program.field == user.program_interests).all()
-#     universities = db.query(University).filter(University.location == location, University.programs == programs).all()
-#     return universities
+def get_professors(
+    db: Session,
+    university_id: int,
+) -> list[Professor]:
+    statement = (
+        select(Professor)
+        .where(Professor.university_id == university_id)
+        .order_by(Professor.name)
+    )
 
-# def get_professors(db:Session, university_id: int, user_id: int):
-#     user = get_user(db, user_id)
-#     if not user:
-#         return []
-#     return db.query(ProfessorRead).filter(ProfessorRead.university_id == university_id, ProfessorRead.research_interests == user.research_interests).all()
+    return list(db.execute(statement).scalars().all())
 
 # def get_programs_from_university(db:Session, university_id: int, field: str = None, degree_type: str = None):
 #     query = db.query(ProgramSummary).filter(ProgramSummary.university_id == university_id)

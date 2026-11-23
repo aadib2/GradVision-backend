@@ -123,6 +123,16 @@ class University(Base):
     university_name: Mapped[str] = mapped_column(String(255), index=True)
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
+    ror_id: Mapped[str | None] = mapped_column(
+        String(100), unique=True, index=True, nullable=True
+    )
+    openalex_id: Mapped[str | None] = mapped_column(
+        String(100), unique=True, index=True, nullable=True
+    )
+    website: Mapped[str | None] = mapped_column(
+        String(500), nullable=True
+    )
+
     # catalog data -> no cascade; restrict by default (no ondelete clause)
     programs: Mapped[list["Program"]] = relationship(back_populates="university")
     professors: Mapped[list["Professor"]] = relationship(back_populates="university")
@@ -148,6 +158,16 @@ class Program(Base):
     university: Mapped["University"] = relationship(back_populates="programs")
     university_name: AssociationProxy[str] = association_proxy("university", "university_name")
     events: Mapped[list["Event"]] = relationship(back_populates="program")
+
+    official_url: Mapped[str | None] = mapped_column(
+        String(500), nullable=True
+    )
+    description: Mapped[str | None] = mapped_column(
+        Text, nullable=True
+    )
+    source_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True
+    )
 
     # reverse side of user-owned join tables -> fine to cascade from here too,
     # but the delete is driven from the User/Application side in practice
@@ -183,6 +203,16 @@ class Professor(Base):
     university: Mapped["University"] = relationship(back_populates="professors")
     papers: Mapped[list["ProfessorPaper"]] = relationship(back_populates="professor")
 
+    openalex_id: Mapped[str | None] = mapped_column(
+        String(100), unique=True, index=True, nullable=True
+    )
+    orcid: Mapped[str | None] = mapped_column(
+        String(100), unique=True, index=True, nullable=True
+    )
+    profile_url: Mapped[str | None] = mapped_column(
+        String(500), nullable=True
+    )
+
 
 class Paper(Base):
     __tablename__ = "papers"
@@ -199,6 +229,12 @@ class Paper(Base):
     professors: Mapped[list["ProfessorPaper"]] = relationship(back_populates="paper")
     professor_ids: AssociationProxy[list[int]] = association_proxy("professors", "professor_id")
 
+    doi: Mapped[str | None] = mapped_column(
+        String(255), unique=True, index=True, nullable=True
+    )
+    publication_year: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )
 
 class ProfessorPaper(Base):
     """Association object for the Professor <-> Paper many-to-many."""

@@ -40,3 +40,6 @@ def get_saved_programs(db:Session, user_id: int):
     if not user:
         return []
     return user.saved_programs
+
+def get_program_by_id(db: Session, program_id: int) -> Program | None:
+    return get_program(db, program_id)
