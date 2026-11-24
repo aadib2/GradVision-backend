@@ -256,6 +256,118 @@ class TestUpdateApplication:
         assert cleared["notes"] is None
 
 
+DOC_URL = "https://docs.google.com/document/d/abc123/edit"
+
+
+class TestStatementUrl:
+    """statement_url: link to the personal statement for an application, kept in an external doc."""
+
+    def test_starts_as_null(self, client, user, program_id):
+        application = create_application(client, user, program_id)
+
+        assert application["statement_url"] is None
+
+    def test_can_be_set_and_is_returned_in_the_list(self, client, user, program_id):
+        application = create_application(client, user, program_id)
+
+        response = client.patch(
+            f"/api/applications/{application['application_id']}",
+            headers=user.headers,
+            json={"statement_url": DOC_URL},
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {"success": True}
+        listed = client.get(collection_url(user.user_id), headers=user.headers).json()[0]
+        assert listed["statement_url"] == DOC_URL
+        # adding a link is separate from ticking the checklist item
+        assert listed["statement_done"] is False
+
+    def test_surrounding_whitespace_is_trimmed(self, client, user, program_id):
+        application = create_application(client, user, program_id)
+
+        client.patch(
+            f"/api/applications/{application['application_id']}",
+            headers=user.headers,
+            json={"statement_url": f"  {DOC_URL}\n"},
+        )
+
+        listed = client.get(collection_url(user.user_id), headers=user.headers).json()[0]
+        assert listed["statement_url"] == DOC_URL
+
+    def test_other_updates_leave_the_link_alone(self, client, user, program_id):
+        application = create_application(client, user, program_id)
+        url = f"/api/applications/{application['application_id']}"
+        client.patch(url, headers=user.headers, json={"statement_url": DOC_URL})
+
+        client.patch(url, headers=user.headers, json={"statement_done": True, "notes": "x"})
+
+        listed = client.get(collection_url(user.user_id), headers=user.headers).json()[0]
+        assert listed["statement_url"] == DOC_URL
+        assert listed["statement_done"] is True
+
+    def test_can_be_cleared_with_null(self, client, user, program_id):
+        application = create_application(client, user, program_id)
+        url = f"/api/applications/{application['application_id']}"
+        client.patch(url, headers=user.headers, json={"statement_url": DOC_URL})
+
+        response = client.patch(url, headers=user.headers, json={"statement_url": None})
+
+        assert response.status_code == 200
+        cleared = client.get(collection_url(user.user_id), headers=user.headers).json()[0]
+        assert cleared["statement_url"] is None
+
+    # verifying the url validator works for bad inputs (see validate_statement_url in schemas/applications.py)
+    @pytest.mark.parametrize(
+        "bad_value",
+        [
+            "javascript:alert(1)",
+            "data:text/html,<script>alert(1)</script>",
+            "ftp://example.com/statement.docx",
+            "//example.com/statement",
+            "https://",
+            "not a url",
+            "",
+            "   ",
+            "https://example.com/" + "a" * 2048,
+            12345,
+        ],
+    )
+    def test_rejects_anything_but_an_http_or_https_url(
+        self, client, user, program_id, bad_value
+    ):
+        application = create_application(client, user, program_id)
+        url = f"/api/applications/{application['application_id']}"
+        client.patch(url, headers=user.headers, json={"statement_url": DOC_URL})
+
+        response = client.patch(url, headers=user.headers, json={"statement_url": bad_value})
+
+        assert response.status_code == 422
+        assert response.json()["success"] is False
+        assert "statement_url" in response.json()["error"]
+        # the previously saved link survives a rejected update
+        listed = client.get(collection_url(user.user_id), headers=user.headers).json()[0]
+        assert listed["statement_url"] == DOC_URL
+
+    def test_cannot_set_on_another_users_application(
+        self, client, user, other_user, program_id
+    ):
+        application = create_application(client, other_user, program_id) # create application for other user
+
+        response = client.patch( # then attempt to patch that application with "user" info
+            f"/api/applications/{application['application_id']}",
+            headers=user.headers,
+            json={"statement_url": DOC_URL},
+        )
+
+        assert response.status_code == 403
+        assert response.json() == NOT_YOUR_APPLICATIONS
+        still = client.get(
+            collection_url(other_user.user_id), headers=other_user.headers
+        ).json()[0]
+        assert still["statement_url"] is None
+
+
 class TestDeleteApplication:
     def test_deletes(self, client, user, program_id):
         application = create_application(client, user, program_id)

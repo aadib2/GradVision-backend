@@ -1100,6 +1100,12 @@ components:
           default: false
         notes:
           type: string
+        # link to the personal statement for this application, kept in an external doc (e.g. Google Docs)
+        statement_url:
+          type: string
+          nullable: true
+          maxLength: 2048
+          example: https://docs.google.com/document/d/abc123/edit
         created_at:
           type: string
           format: date-time
@@ -1125,6 +1131,13 @@ components:
           type: boolean
         notes:
           type: string
+        statement_url:
+          type: string
+          nullable: true
+          maxLength: 2048
+          description: >
+            Must be an http or https URL (surrounding whitespace is trimmed).
+            Send null to remove the link. An empty string is rejected with 422.
 
     # one item on the to-do list. can be linked to an application but doesnt have to be
     Task:
