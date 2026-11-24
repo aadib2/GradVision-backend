@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import os
 
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
@@ -15,6 +16,18 @@ from app.core.database import Base, engine
 from app.core.exceptions import http_exception_handler, validation_exception_handler
 from app.models import models  # noqa: F401 — register ORM tables with Base.metadata
 
+_DEFAULT_CORS_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+
+def _cors_origins() -> list[str]:
+    raw = os.getenv("CORS_ORIGINS")
+    if raw is None or raw.strip() == "":
+        return list(_DEFAULT_CORS_ORIGINS)
+    return [origin.strip() for origin in raw.split(",") if origin.strip()]
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
@@ -26,10 +39,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=_cors_origins(),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
     allow_headers=[
@@ -58,3 +68,8 @@ app.include_router(search_routes.router, prefix="/api")
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}

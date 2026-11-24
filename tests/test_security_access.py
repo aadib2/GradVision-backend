@@ -26,6 +26,7 @@ PROTECTED = {
 
 PUBLIC = {
     ("GET", "/"),
+    ("GET", "/health"),
     ("POST", "/api/users"),
     ("POST", "/api/auth/login"),
     ("POST", "/api/auth/token"),

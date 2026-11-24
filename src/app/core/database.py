@@ -7,9 +7,21 @@ import os
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
+
+def normalize_database_url(url: str) -> str:
+    """Rewrite Render-style Postgres URLs for SQLAlchemy + psycopg."""
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url.removeprefix("postgres://")
+    if url.startswith("postgresql://"):
+        url = "postgresql+psycopg://" + url.removeprefix("postgresql://")
+    return url
+
+
 # Swap this for your real Postgres URL in production / via env var.
 # Example Postgres URL: postgresql+psycopg://user:pass@localhost:5432/gradvision
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./gradvision.db")
+DATABASE_URL = normalize_database_url(
+    os.getenv("DATABASE_URL", "sqlite:///./gradvision.db")
+)
 
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 
