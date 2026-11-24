@@ -253,6 +253,8 @@ class Application(Base):
     statement_done: Mapped[bool] = mapped_column(Boolean, default=False)
     test_scores_done: Mapped[bool] = mapped_column(Boolean, default=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # link to the personal statement for this application, kept in an external doc
+    statement_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
@@ -272,7 +274,7 @@ class Application(Base):
     tasks: Mapped[list["Task"]] = relationship(
         back_populates="application", cascade="all, delete-orphan", passive_deletes=True
     )
-
+ 
 
 class Task(Base):
     __tablename__ = "tasks"
