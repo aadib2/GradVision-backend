@@ -18,7 +18,8 @@ uv sync
 | Variable | Required | Default | Purpose |
 |----------|----------|---------|---------|
 | `JWT_SECRET_KEY` | **Yes** | — | Secret used to sign JWTs. The app will not start without it. |
-| `DATABASE_URL` | No | `sqlite:///./gradvision.db` | Database connection string (relative to where you run the commands). |
+| `DATABASE_URL` | No | `sqlite:///./gradvision.db` | Database connection string (relative to where you run the commands). Postgres URLs are normalized for SQLAlchemy + psycopg. |
+| `CORS_ORIGINS` | No | `http://localhost:3000`, `http://127.0.0.1:3000` | Comma-separated browser origins allowed by CORS (e.g. your Vercel URL). |
 
 Generate a secret and export it in every terminal you use for the app:
 
@@ -60,7 +61,25 @@ uv run uvicorn app.main:app --reload --app-dir src
 - API: http://localhost:8000
 - Interactive docs (Swagger UI): http://localhost:8000/docs
 
-CORS is configured for a frontend on `http://localhost:3000`.
+CORS defaults to a frontend on `http://localhost:3000` (and `http://127.0.0.1:3000`). Override with `CORS_ORIGINS` for other origins.
+
+### Production (e.g. Render)
+
+Do not use `--reload`. Bind all interfaces and use the platform port:
+
+```bash
+uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT --app-dir src
+```
+
+Suggested Render settings (repo root; leave Root Directory empty):
+
+| Setting | Value |
+|---------|--------|
+| Build Command | `uv sync --frozen && uv run alembic upgrade head` |
+| Start Command | `uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT --app-dir src` |
+| Health Check Path | `/health` |
+
+Set `JWT_SECRET_KEY`, link a Render Postgres database for `DATABASE_URL`, and set `CORS_ORIGINS` to your Vercel frontend origin(s). See [`.env.example`](.env.example).
 
 ## Authentication
 
