@@ -81,6 +81,30 @@ Suggested Render settings (repo root; leave Root Directory empty):
 
 Set `JWT_SECRET_KEY`, link a Render Postgres database for `DATABASE_URL`, and set `CORS_ORIGINS` to your Vercel frontend origin(s). See [`.env.example`](.env.example).
 
+### FastAPI Cloud
+
+The project is packaged so `app.main:app` imports without `--app-dir` (see `[tool.fastapi]` in `pyproject.toml`). Verify locally:
+
+```bash
+uv run fastapi run
+```
+
+Set these environment variables in the FastAPI Cloud dashboard or CLI (`fastapi cloud env set`):
+
+| Variable | Required | Notes |
+|----------|----------|-------|
+| `JWT_SECRET_KEY` | **Yes** | Use `--secret` for the CLI |
+| `DATABASE_URL` | Yes in production | Postgres URL, or connect Supabase so Cloud injects it |
+| `CORS_ORIGINS` | Recommended | Comma-separated frontend origin(s) |
+
+After `DATABASE_URL` is available, apply migrations from the repo root (Cloud has no Render-style build step):
+
+```bash
+uv run alembic upgrade head
+```
+
+Deploy later with `uv run fastapi deploy` (do not use this until env vars and migrations are ready).
+
 ## Authentication
 
 The API uses JWT bearer authentication.
