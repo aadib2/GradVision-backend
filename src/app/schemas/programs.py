@@ -66,16 +66,26 @@ class ProgramSearchResultUniversity(BaseModel):
     location: Optional[str] = None
 
 
-class ProgramSearchResult(BaseModel):
-    """Row shape for /api/search — build this in the repository layer from a
-    join across Program + University (+ a MIN(Event.event_date) subquery for
-    next_deadline); it doesn't map 1:1 from a bare Program row."""
+class ProgramSearchProfessor(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
 
+    professor_id: int
+    name: str
+    department: Optional[str] = None
+    research_interests: list[str] = Field(default_factory=list)
+
+
+class ProgramSearchResult(BaseModel):
     program_id: int
     program_name: str
     degree_type: DegreeType
     field: Optional[str] = None
     price: Optional[int] = None
     funding_available: bool = False
-    university: ProgramSearchResultUniversity
+    program_start: Optional[int] = None
+    program_end: Optional[int] = None
+    match_score: int = 0
     next_deadline: Optional[date] = None
+
+    university: ProgramSearchResultUniversity
+    professors: list[ProgramSearchProfessor] = Field(default_factory=list)
