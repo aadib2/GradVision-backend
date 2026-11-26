@@ -81,15 +81,18 @@ def search_programs(
         )
 
     if location:
-        statement = statement.where(
-            University.location.ilike(f"%{location}%")
-        )
+        location_filters = [
+            University.location.ilike(f"%{value}%")
+            for value in location
+        ]
+
+        statement = statement.where(or_(*location_filters))
 
     if degree_type:
         statement = statement.where(
             Program.degree_type.in_(degree_type)
         )
-
+        
     statement = (
         statement
         .order_by(University.university_name, Program.program_name)
