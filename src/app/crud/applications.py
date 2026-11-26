@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from app.models.models import Application as ApplicationModel, Program as ProgramModel, Task as TaskModel
+from app.models.models import Application as ApplicationModel, Program as ProgramModel
 from app.schemas.applications import ApplicationUpdate
 
 def get_user_applications(
@@ -14,6 +14,23 @@ def get_user_applications(
             )
         ).scalars()
     )
+
+
+def get_application(db: Session, application_id: int) -> ApplicationModel | None:
+    return db.get(ApplicationModel, application_id)
+
+
+def get_user_program_application(
+    db: Session,
+    user_id: int,
+    program_id: int,
+) -> ApplicationModel | None:
+    return db.execute(
+        select(ApplicationModel).where(
+            ApplicationModel.user_id == user_id,
+            ApplicationModel.program_id == program_id,
+        )
+    ).scalars().first()
 
 
 def create_application(
@@ -40,20 +57,9 @@ def create_application(
 
 def update_application(
     db: Session,
-    application_id: int,
-    user_id: int,
+    application: ApplicationModel,
     application_data: ApplicationUpdate,
-) -> ApplicationModel | None:
-    application = db.execute(
-        select(ApplicationModel).where(
-            ApplicationModel.application_id == application_id,
-            ApplicationModel.user_id == user_id,
-        )
-    ).scalar_one_or_none()
-
-    if application is None:
-        return None
-
+) -> ApplicationModel:
     for field, value in application_data.model_dump(
         exclude_unset=True
     ).items():
@@ -65,22 +71,6 @@ def update_application(
     return application
 
 
-def delete_application(
-    db: Session,
-    application_id: int,
-    user_id: int,
-) -> bool:
-    application = db.execute(
-        select(ApplicationModel).where(
-            ApplicationModel.application_id == application_id,
-            ApplicationModel.user_id == user_id,
-        )
-    ).scalar_one_or_none()
-
-    if application is None:
-        return False
-
+def delete_application(db: Session, application: ApplicationModel) -> None:
     db.delete(application)
     db.commit()
-
-    return True

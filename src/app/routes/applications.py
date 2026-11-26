@@ -57,6 +57,14 @@ def create_application(
 ):
     ensure_current_user(user_id, current_user)
 
+    if application_crud.get_user_program_application(
+        db, current_user.user_id, application_in.program_id
+    ) is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You have already added this program to your applications",
+        )
+
     application = application_crud.create_application(
         db=db,
         user_id=current_user.user_id,
@@ -75,6 +83,21 @@ def create_application(
     }
 
 
+def _get_owned_application(
+    db: Session,
+    application_id: int,
+    current_user: UserModel,
+):
+    application = application_crud.get_application(db, application_id)
+    if application is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Application not found",
+        )
+    ensure_current_user(application.user_id, current_user)
+    return application
+
+
 @router.patch(
     "/applications/{application_id}",
     response_model=SuccessResponse,
@@ -85,24 +108,9 @@ def update_application(
     current_user: UserModel = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    application = application_crud.update_application(
-        db=db,
-        application_id=application_id,
-        user_id=current_user.user_id,
-        application_data=application_in,
-    )
-
-    if application is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Application not found",
-        )
-
-    return {
-        "success": True,
-        "message": "Application updated successfully",
-        "data": ApplicationSchema.model_validate(application),
-    }
+    application = _get_owned_application(db, application_id, current_user)
+    application_crud.update_application(db, application, application_in)
+    return SuccessResponse()
 
 
 @router.delete(
@@ -114,20 +122,6 @@ def delete_application(
     current_user: UserModel = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    deleted = application_crud.delete_application(
-        db=db,
-        application_id=application_id,
-        user_id=current_user.user_id,
-    )
-
-    if not deleted:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Application not found",
-        )
-
-    return {
-        "success": True,
-        "message": "Application deleted successfully",
-        "data": None,
-    }
+    application = _get_owned_application(db, application_id, current_user)
+    application_crud.delete_application(db, application)
+    return SuccessResponse()

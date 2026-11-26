@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from jwt.exceptions import InvalidTokenError
 
@@ -72,15 +73,11 @@ def _get_valid_refresh_token(
     return stored_token, user
 
 
-@router.post("/login", response_model=Token)
-def login(
-    credentials: LoginRequest,
-    db: Session = Depends(get_db),
-) -> Token:
+def _login_with_credentials(db: Session, email: str, password: str) -> Token:
     user = auth_crud.auth_login(
         db=db,
-        email=credentials.email,
-        password=credentials.password,
+        email=email,
+        password=password,
     )
 
     if user is None:
@@ -108,6 +105,23 @@ def login(
         refresh_token=refresh_token,
         token_type="bearer",
     )
+
+
+@router.post("/login", response_model=Token)
+def login(
+    credentials: LoginRequest,
+    db: Session = Depends(get_db),
+) -> Token:
+    return _login_with_credentials(db, credentials.email, credentials.password)
+
+
+@router.post("/token", response_model=Token, include_in_schema=False)
+def login_form(
+    form: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+) -> Token:
+    """Form-encoded login used by the Swagger UI "Authorize" dialog (username = email)."""
+    return _login_with_credentials(db, form.username, form.password)
 
 
 @router.post("/refresh", response_model=Token)

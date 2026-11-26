@@ -64,7 +64,7 @@ def save_program(
 ) -> SuccessResponse:
     _ensure_self(current_user, id)
     _get_user_or_404(db, id)
-    if programs_crud.get_program_by_id(db, body.program_id) is None:
+    if programs_crud.get_program(db, body.program_id) is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Program not found",
