@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from app.models.models import DegreeType, Professor, Program, University
 from app.schemas.universities import UniversitySummary
 
-
 def list_universities(
     db: Session,
     location: str | None = None,
@@ -60,7 +59,35 @@ def list_universities(
     rows = db.execute(stmt).mappings().all()
     return [UniversitySummary(**row) for row in rows]
 
+def search_universities(
+    db: Session,
+    location: str | None = None,
+    search: str | None = None,
+    program_fields: list[str] | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list[UniversitySummary]:
+    return list_universities(
+        db=db,
+        location=location,
+        search=search,
+        program_fields=program_fields,
+        limit=limit,
+        offset=offset,
+    )
 
+
+def get_professors(
+    db: Session,
+    university_id: int,
+) -> list[Professor]:
+    statement = (
+        select(Professor)
+        .where(Professor.university_id == university_id)
+        .order_by(Professor.name)
+    )
+
+    return list(db.execute(statement).scalars().all())
 def search_universities(
     db: Session,
     location: str | None = None,
@@ -71,18 +98,6 @@ def search_universities(
 ) -> list[UniversitySummary]:
     """Search universities for GET /api/search/universities (same filters as the list)."""
     return list_universities(db, location, search, program_fields, limit, offset)
-
-
-def get_professors(db: Session, university_id: int) -> list[Professor]:
-    """All professors at one university, ordered by name."""
-    return list(
-        db.execute(
-            select(Professor)
-            .where(Professor.university_id == university_id)
-            .order_by(Professor.name, Professor.professor_id)
-        ).scalars()
-    )
-
 
 def get_programs_from_university(
     db: Session,
